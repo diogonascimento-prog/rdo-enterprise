@@ -1,0 +1,313 @@
+// =============================================================================
+// RDO ENTERPRISE — Prisma Schema (PostgreSQL — produção Neon/Supabase)
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// =============================================================================
+// USUÁRIOS
+// role: ADMIN | GESTOR_PORTFOLIO | ENGENHEIRO | MESTRE_OBRA | APROVADOR | ELABORADOR | VISUALIZADOR
+// =============================================================================
+model Usuario {
+  id           String   @id @default(cuid())
+  nome         String
+  email        String   @unique
+  senha        String
+  registro     String?
+  cargo        String?
+  telefone     String?
+  avatarUrl    String?
+  role         String   @default("ELABORADOR")
+  ativo        Boolean  @default(true)
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  obras          UsuarioObra[]
+  rdosElaborados Rdo[]        @relation("Elaborador")
+  rdosAprovados  Rdo[]        @relation("Aprovador")
+  assinaturas    Assinatura[]
+
+  @@map("usuarios")
+}
+
+// =============================================================================
+// OBRAS
+// status: PLANEJAMENTO | EM_ANDAMENTO | PARALISADA | CONCLUIDA | CANCELADA
+// =============================================================================
+model Obra {
+  id                 String   @id @default(cuid())
+  nome               String
+  codigo             String   @unique
+  descricao          String?
+  cliente            String?
+  cnpjCliente        String?
+  responsavelTecnico String?
+  art                String?
+  endereco           String?
+  cidade             String?
+  estado             String?
+  cep                String?
+  latitude           Float?
+  longitude          Float?
+  dataInicio         DateTime
+  dataFimPrevisto    DateTime
+  dataFimReal        DateTime?
+  orcamentoTotal     Float?
+  areaTotal          Float?
+  status             String   @default("PLANEJAMENTO")
+  criadoEm           DateTime @default(now())
+  atualizadoEm       DateTime @updatedAt
+
+  usuarios             UsuarioObra[]
+  rdos                 Rdo[]
+  atividadesPlanejadas AtividadePlanejada[]
+
+  @@map("obras")
+}
+
+model UsuarioObra {
+  id        String @id @default(cuid())
+  usuarioId String
+  obraId    String
+  role      String @default("ELABORADOR")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  obra    Obra    @relation(fields: [obraId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, obraId])
+  @@map("usuarios_obras")
+}
+
+// =============================================================================
+// CRONOGRAMA
+// =============================================================================
+model AtividadePlanejada {
+  id              String   @id @default(cuid())
+  obraId          String
+  wbs             String?
+  descricao       String
+  frente          String?
+  unidade         String?
+  quantidadeTotal Float?
+  pesoRelativo    Float    @default(0)
+  dataInicioPrev  DateTime
+  dataFimPrev     DateTime
+  criadoEm        DateTime @default(now())
+
+  obra          Obra        @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  atividadesRdo Atividade[]
+
+  @@map("atividades_planejadas")
+}
+
+// =============================================================================
+// RDO
+// status: RASCUNHO | PENDENTE_APROVACAO | APROVADO | REJEITADO
+// turno:  DIURNO | NOTURNO | INTEGRAL
+// =============================================================================
+model Rdo {
+  id              String   @id @default(cuid())
+  obraId          String
+  data            DateTime
+  numero          Int
+  turno           String   @default("DIURNO")
+  status          String   @default("RASCUNHO")
+  observacaoGeral String?
+  elaboradorId    String
+  aprovadorId     String?
+  motivoRejeicao  String?
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+
+  obra       Obra    @relation(fields: [obraId], references: [id])
+  elaborador Usuario @relation("Elaborador", fields: [elaboradorId], references: [id])
+  aprovador  Usuario? @relation("Aprovador", fields: [aprovadorId], references: [id])
+
+  clima        Clima[]
+  maoDeObra    MaoDeObra[]
+  equipamentos Equipamento[]
+  atividades   Atividade[]
+  materiais    Material[]
+  ocorrencias  Ocorrencia[]
+  fotos        Foto[]
+  assinaturas  Assinatura[]
+
+  @@unique([obraId, numero])
+  @@unique([obraId, data])
+  @@index([obraId, data])
+  @@map("rdos")
+}
+
+// =============================================================================
+// CLIMA
+// periodo:  MANHA | TARDE | NOITE
+// condicao: BOM | NUBLADO | CHUVA_LEVE | CHUVA_FORTE | IMPRATICAVEL | VENTANIA | NEBLINA
+// =============================================================================
+model Clima {
+  id          String  @id @default(cuid())
+  rdoId       String
+  periodo     String
+  condicao    String
+  temperatura Float?
+  umidade     Float?
+  observacao  String?
+
+  rdo Rdo @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+
+  @@unique([rdoId, periodo])
+  @@map("climas")
+}
+
+// =============================================================================
+// MÃO DE OBRA
+// tipo:   PROPRIO | TERCEIRIZADO
+// funcao: ENGENHEIRO_CIVIL | PEDREIRO | SERVENTE | CARPINTEIRO | etc.
+// =============================================================================
+model MaoDeObra {
+  id               String  @id @default(cuid())
+  rdoId            String
+  tipo             String
+  funcao           String
+  funcaoDescricao  String?
+  empresa          String?
+  quantidade       Int
+  horasTrabalhadas Float
+  horasExtras      Float   @default(0)
+
+  rdo Rdo @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+
+  @@map("mao_de_obra")
+}
+
+// =============================================================================
+// EQUIPAMENTOS
+// status: OPERANDO | PARADO_MANUTENCAO | PARADO_AGUARDANDO_OPERADOR | etc.
+// =============================================================================
+model Equipamento {
+  id            String  @id @default(cuid())
+  rdoId         String
+  nome          String
+  modelo        String?
+  placa         String?
+  proprietario  String?
+  quantidade    Int     @default(1)
+  horasOperadas Float   @default(0)
+  horasParadas  Float   @default(0)
+  status        String  @default("OPERANDO")
+  motivoParada  String?
+
+  rdo Rdo @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+
+  @@map("equipamentos")
+}
+
+// =============================================================================
+// ATIVIDADES DO DIA
+// =============================================================================
+model Atividade {
+  id                   String  @id @default(cuid())
+  rdoId                String
+  atividadePlanejadaId String?
+  descricao            String
+  frente               String?
+  unidade              String?
+  quantidadePrevista   Float?
+  quantidadeRealizada  Float?
+  percentualAvancoDia  Float   @default(0)
+  observacao           String?
+
+  rdo                Rdo                  @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+  atividadePlanejada AtividadePlanejada?  @relation(fields: [atividadePlanejadaId], references: [id])
+
+  @@map("atividades")
+}
+
+// =============================================================================
+// MATERIAIS RECEBIDOS
+// =============================================================================
+model Material {
+  id          String @id @default(cuid())
+  rdoId       String
+  descricao   String
+  quantidade  Float
+  unidade     String
+  notaFiscal  String?
+  fornecedor  String?
+  observacao  String?
+
+  rdo Rdo @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+
+  @@map("materiais")
+}
+
+// =============================================================================
+// OCORRÊNCIAS E SMS
+// tipo:      ACIDENTE_COM_AFASTAMENTO | PARALISACAO_CHUVA | VISITA_TECNICA | etc.
+// gravidade: BAIXA | MEDIA | ALTA | CRITICA
+// =============================================================================
+model Ocorrencia {
+  id            String  @id @default(cuid())
+  rdoId         String
+  tipo          String
+  gravidade     String  @default("BAIXA")
+  descricao     String
+  horaInicio    DateTime?
+  horaFim       DateTime?
+  impacto       String?
+  acaoImediata  String?
+  acaoCorretiva String?
+  responsavel   String?
+  concluida     Boolean @default(false)
+
+  rdo Rdo @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+
+  @@map("ocorrencias")
+}
+
+// =============================================================================
+// FOTOS — armazenadas em /public/uploads/ (local) ou SharePoint (produção)
+// =============================================================================
+model Foto {
+  id                String   @id @default(cuid())
+  rdoId             String
+  sharepointUrl     String
+  sharepointCaminho String
+  nomeArquivo       String
+  legenda           String?
+  frente            String?
+  atividade         String?
+  tamanho           Int?
+  criadoEm          DateTime @default(now())
+
+  rdo Rdo @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+
+  @@map("fotos")
+}
+
+// =============================================================================
+// ASSINATURAS DIGITAIS
+// tipo: ELABORADOR | APROVADOR | TESTEMUNHA
+// =============================================================================
+model Assinatura {
+  id         String   @id @default(cuid())
+  rdoId      String
+  usuarioId  String
+  tipo       String
+  assinadoEm DateTime @default(now())
+  ipAddress  String?
+  userAgent  String?
+  hash       String?
+
+  rdo     Rdo     @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@map("assinaturas")
+}
