@@ -2,9 +2,9 @@
 module.exports = {
   darkMode: ["class"],
   content: [
-    "C:/App Diario de obra/rdo-enterprise/src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "C:/App Diario de obra/rdo-enterprise/src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "C:/App Diario de obra/rdo-enterprise/src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     container: { center: true, padding: "2rem", screens: { "2xl": "1400px" } },
