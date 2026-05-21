@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   HardHat, BarChart2, FolderKanban, Settings, LogOut,
-  ChevronRight, FileText, Upload, Zap,
+  ChevronRight, FileText, Upload, Zap, Users,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -21,14 +21,15 @@ const navGroups = [
   {
     label: "Relatórios",
     items: [
-      { href: "/relatorios", label: "Relatórios", icon: BarChart2, desc: "Exportações e PDFs" },
+      { href: "/relatorios", label: "Relatórios", icon: BarChart2, desc: "Exportações Excel" },
     ],
   },
   {
     label: "Sistema",
     items: [
+      { href: "/usuarios",      label: "Usuários",        icon: Users,    desc: "Acessos e perfis"  },
       { href: "/importar",      label: "Importar Excel",  icon: Upload,   desc: "Cadastro em massa" },
-      { href: "/configuracoes", label: "Configurações",   icon: Settings, desc: "Preferências"       },
+      { href: "/configuracoes", label: "Configurações",   icon: Settings, desc: "Perfil e senha"    },
     ],
   },
 ];

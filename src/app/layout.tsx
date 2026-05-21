@@ -10,6 +10,18 @@ export const metadata: Metadata = {
     template: "%s | RDO Enterprise",
   },
   description: "Sistema de Relatório Diário de Obra — Gestão e Analytics",
+  manifest: "/manifest.json",
+  themeColor: "#E8500D",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "RDO Enterprise",
+  },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+  },
 };
 
 export default function RootLayout({
